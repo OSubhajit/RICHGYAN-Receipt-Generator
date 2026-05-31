@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RICHGYAN Receipt Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --gold:       #C9952A;
+  --gold-light: #F0C96A;
+  --gold-dark:  #9A6E10;
+  --ink:        #1A1208;
+  --cream:      #FDF8EE;
+  --cream2:     #F5EDD5;
+  --paper:      #FFFDF7;
+  --blue-rg:    #0070C0;
+  --orange-rg:  #974705;
+  --red-accent: #C0392B;
+  --muted:      #7A6A50;
+  --shadow:     0 4px 32px rgba(26,18,8,.12);
+  --radius:     12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);
+  background-image:radial-gradient(circle at 15% 15%,rgba(201,149,42,.08) 0%,transparent 50%),
+                   radial-gradient(circle at 85% 85%,rgba(0,112,192,.06) 0%,transparent 50%);
+  min-height:100vh;color:var(--ink)}
+
+/* Header */
+header{background:var(--ink);padding:20px 40px;display:flex;align-items:center;gap:20px;box-shadow:0 2px 24px rgba(0,0,0,.3)}
+.logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:10px;display:grid;place-items:center;font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--ink);flex-shrink:0;box-shadow:0 0 0 2px var(--gold-dark)}
+.logo-text h1{font-family:'Playfair Display',serif;color:var(--gold-light);font-size:22px;letter-spacing:.5px}
+.logo-text p{color:rgba(255,255,255,.5);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+
+/* Layout */
+.main{max-width:1200px;margin:0 auto;padding:40px 24px 60px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+
+/* Card */
+.card{background:var(--paper);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(201,149,42,.2)}
+.card-header{padding:20px 28px 16px;border-bottom:1px solid rgba(201,149,42,.15);display:flex;align-items:center;gap:10px}
+.card-header .icon{font-size:20px}
+.card-header h2{font-family:'Playfair Display',serif;font-size:18px;color:var(--ink)}
+.card-header .badge{margin-left:auto;background:linear-gradient(135deg,#10B981,#059669);color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;letter-spacing:.5px}
+.card-body{padding:24px 28px}
+
+/* Form */
+.field-group{margin-bottom:18px}
+label{display:block;font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+input,textarea{width:100%;padding:11px 14px;border:1.5px solid rgba(201,149,42,.25);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--ink);background:var(--cream2);transition:border-color .2s,box-shadow .2s;outline:none}
+input:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,149,42,.12);background:#fff}
+input.error{border-color:var(--red-accent)}
+.field-error{font-size:11px;color:var(--red-accent);margin-top:4px}
+.amount-wrap{position:relative}
+.amount-wrap .prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:600;color:var(--gold-dark);pointer-events:none}
+.amount-wrap input{padding-left:34px;font-family:'DM Mono',monospace}
+.words-hint{font-size:12px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace}
+
+/* Groq */
+.groq-section{background:linear-gradient(135deg,rgba(0,112,192,.04),rgba(201,149,42,.06));border:1.5px dashed rgba(0,112,192,.25);border-radius:10px;padding:18px;margin-bottom:22px}
+.groq-title{font-size:13px;font-weight:600;color:var(--blue-rg);display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.groq-row{display:flex;gap:8px}
+.groq-row input{flex:1;font-size:13px}
+.btn-groq{background:var(--blue-rg);color:#fff;border:none;border-radius:8px;padding:0 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s,transform .1s}
+.btn-groq:hover{background:#005fa3}
+.btn-groq:active{transform:scale(.97)}
+.btn-groq:disabled{background:#aaa;cursor:not-allowed}
+textarea.groq-prompt{height:64px;resize:none;font-size:13px;margin-top:10px}
+.groq-status{font-size:12px;color:var(--muted);margin-top:6px;min-height:18px}
+.groq-status.ok{color:#059669}
+.groq-status.err{color:var(--red-accent)}
+
+/* Download buttons */
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.btn-both{grid-column:1/-1}
+.btn-dl{width:100%;padding:13px 10px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:transform .15s,box-shadow .15s}
+.btn-dl:hover{transform:translateY(-2px)}
+.btn-dl:active{transform:translateY(0)}
+.btn-dl:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-word{background:linear-gradient(135deg,#1565C0,#1976D2);color:#fff;box-shadow:0 4px 14px rgba(21,101,192,.3)}
+.btn-word:hover{box-shadow:0 7px 20px rgba(21,101,192,.4)}
+.btn-pdf{background:linear-gradient(135deg,#B71C1C,#D32F2F);color:#fff;box-shadow:0 4px 14px rgba(183,28,28,.3)}
+.btn-pdf:hover{box-shadow:0 7px 20px rgba(183,28,28,.4)}
+.btn-both-dl{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:#fff;box-shadow:0 4px 16px rgba(201,149,42,.3);font-size:15px;font-family:'Playfair Display',serif}
+.btn-both-dl:hover{box-shadow:0 8px 24px rgba(201,149,42,.4)}
+
+/* Spinner */
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Section divider */
+.section-divider{border:none;border-top:1px dashed rgba(201,149,42,.3);margin:20px 0 18px}
+
+/* Receipt Preview */
+.receipt-preview{font-family:'Times New Roman',Times,serif;background:#fff;border:2px solid #333;border-radius:4px;padding:24px 28px;line-height:1.7;font-size:13.5px}
+.rp-org{text-align:center}
+.rp-org .rp-name{font-size:20px;font-weight:900;letter-spacing:1px}
+.rp-org .rp-dept{font-size:15px;font-weight:700}
+.rp-org .rp-sub{font-size:13px;font-weight:700;color:#974705}
+.rp-org .rp-reg,.rp-org .rp-init{font-size:11px;font-weight:700}
+.rp-divider{border:none;border-top:2px double #333;margin:8px 0}
+.rp-title{text-align:center;font-size:21px;font-weight:900;letter-spacing:2px;margin:6px 0 2px}
+.rp-meta{text-align:right;font-size:11px;color:#555;margin-bottom:10px;font-family:'DM Mono',monospace}
+.rp-field{font-size:14px;font-weight:700;margin:3px 0;word-break:break-word}
+.rp-thanks{color:#0070C0;margin-top:12px}
+.rp-thanks .rp-thanks-title{font-weight:700;font-size:13px}
+.rp-thanks p{font-size:11px;line-height:1.5}
+.rp-sig{font-weight:700;font-size:13px;margin-top:14px}
+.rp-about-title{font-size:11px;font-weight:700;color:#333;margin-top:14px;border-top:1px solid #ccc;padding-top:6px}
+.rp-about{font-size:10px;color:#4A4A4A;line-height:1.4;margin-top:3px}
+.preview-placeholder{text-align:center;padding:60px 20px;color:var(--muted)}
+.preview-placeholder .big{font-size:48px;display:block;margin-bottom:12px}
+
+/* Format badges on preview */
+.format-badges{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.fbadge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;letter-spacing:.5px}
+.fbadge-word{background:#E3F2FD;color:#1565C0;border:1px solid #90CAF9}
+.fbadge-pdf{background:#FFEBEE;color:#B71C1C;border:1px solid #FFCDD2}
+
+/* Toast */
+#toast{position:fixed;bottom:32px;right:32px;background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,.3);transform:translateY(80px);opacity:0;transition:transform .3s ease,opacity .3s ease;z-index:9999;max-width:320px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{background:#059669}
+#toast.error{background:var(--red-accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">R</div>
+  <div class="logo-text">
+    <h1>RICHGYAN INDIA</h1>
+    <p>Receipt Generator — Production System</p>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- LEFT: Form -->
+  <div>
+    
+    <!-- Form -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📋</span>
+        <h2>Receipt Details</h2>
+      </div>
+      <div class="card-body">
+        <div class="field-group">
+          <label>Received From (Name) *</label>
+          <input type="text" id="f-name" placeholder="e.g. Subhajit Sarkar" oninput="updatePreview()"/>
+          <div class="field-error" id="e-name"></div>
+        </div>
+        <div class="field-group">
+          <label>Amount (₹) *</label>
+          <div class="amount-wrap">
+            <span class="prefix">₹</span>
+            <input type="number" id="f-amount" placeholder="2000" min="1" oninput="onAmountInput()"/>
+          </div>
+          <div class="words-hint" id="amount-words"></div>
+          <div class="field-error" id="e-amount"></div>
+        </div>
+        <div class="field-group">
+          <label>For (Purpose) *</label>
+          <input type="text" id="f-purpose" placeholder="e.g. Basic Computer Course Fee" oninput="updatePreview()"/>
+          <div class="field-error" id="e-purpose"></div>
+        </div>
+        <div class="field-group">
+          <label>Month *</label>
+          <input type="text" id="f-month" placeholder="e.g. June 2026" oninput="updatePreview()"/>
+          <div class="field-error" id="e-month"></div>
+        </div>
+        <div class="field-group">
+          <label>Branch *</label>
+          <input type="text" id="f-branch" placeholder="e.g. Guwahati" oninput="updatePreview()"/>
+          <div class="field-error" id="e-branch"></div>
+        </div>
+
+        <hr class="section-divider"/>
+
+        <!-- Download buttons -->
+        <div class="btn-row">
+          <button class="btn-dl btn-word" id="btn-docx" onclick="doDownload('docx')">
+            <span id="lbl-docx">📄 Word (.docx)</span>
+            <div class="spinner" id="spin-docx" style="display:none"></div>
+          </button>
+          <button class="btn-dl btn-pdf" id="btn-pdf" onclick="doDownload('pdf')">
+            <span id="lbl-pdf">🔴 PDF (.pdf)</span>
+            <div class="spinner" id="spin-pdf" style="display:none"></div>
+          </button>
+          <button class="btn-dl btn-both-dl btn-both" id="btn-both" onclick="doDownload('both')">
+            <span id="lbl-both">⬇ Download Both (Word + PDF)</span>
+            <div class="spinner" id="spin-both" style="display:none"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Preview -->
+  <div class="card">
+    <div class="card-header">
+      <span class="icon">👁</span>
+      <h2>Live Preview</h2>
+    </div>
+    <div class="card-body" style="padding:20px">
+      <div id="preview-area">
+        <div class="preview-placeholder">
+          <span class="big">🧾</span>
+          <p>Fill in the form to see a live preview of your receipt</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ── Indian number-to-words ─────────────────────────────────────────────────── */
+const ONES=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine'];
+const TENS=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+const TEENS=['Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+function cvt(n){let r='';if(n>=100){r+=ONES[Math.floor(n/100)]+' Hundred ';n%=100}if(n>=20){r+=TENS[Math.floor(n/10)]+' ';if(n%10)r+=ONES[n%10]+' '}else if(n>=10){r+=TEENS[n-10]+' '}else if(n>0){r+=ONES[n]+' '}return r.trim()}
+function numberToWords(num){if(!num||isNaN(num)||num<=0)return'';num=Math.floor(num);const parts=[];const h=num%1000;num=Math.floor(num/1000);if(h)parts.unshift(cvt(h));const th=num%100;num=Math.floor(num/100);if(th)parts.unshift(cvt(th)+' Thousand');const lk=num%100;num=Math.floor(num/100);if(lk)parts.unshift(cvt(lk)+' Lakh');const cr=num%100;if(cr)parts.unshift(cvt(cr)+' Crore');return parts.join(' ').replace(/\s+/g,' ').trim()}
+function formatRupee(n){if(!n||isNaN(n))return'';return'₹ '+parseInt(n).toLocaleString('en-IN')}
+
+/* ── Preview ────────────────────────────────────────────────────────────────── */
+let previewTimer;
+function updatePreview(){clearTimeout(previewTimer);previewTimer=setTimeout(renderPreview,150)}
+function renderPreview(){
+  const name    = document.getElementById('f-name').value.trim();
+  const amount  = parseInt(document.getElementById('f-amount').value)||0;
+  const purpose = document.getElementById('f-purpose').value.trim();
+  const month   = document.getElementById('f-month').value.trim();
+  const branch  = document.getElementById('f-branch').value.trim();
+  if(!name&&!amount&&!purpose&&!month&&!branch){
+    document.getElementById('preview-area').innerHTML='<div class="preview-placeholder"><span class="big">🧾</span><p>Fill in the form to see a live preview of your receipt</p></div>';
+    return;
+  }
+  const today=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const year=new Date().getFullYear();
+  const amtFmt  =amount?formatRupee(amount):'₹ ……………………………………';
+  const amtWords=amount?numberToWords(amount):'……………………………………';
+  document.getElementById('preview-area').innerHTML=`
+  <div class="format-badges">
+    <span class="fbadge fbadge-word">📄 Word (.docx)</span>
+    <span class="fbadge fbadge-pdf">🔴 PDF (.pdf)</span>
+  </div>
+  <div class="receipt-preview">
+    <div class="rp-org">
+      <div class="rp-name">RICHGYAN INDIA</div>
+      <div class="rp-dept">COMPUTER &amp; VOCATIONAL INSTITUTE</div>
+      <div class="rp-sub">(An I.T &amp; Vocational Training Awareness Programme)</div>
+      <div class="rp-reg">Registered under Ministry Of Corporate Affairs. GOVT. OF INDIA</div>
+      <div class="rp-init">Initiated By: Richgyan India I.T. &amp; Educational</div>
+    </div>
+    <hr class="rp-divider"/>
+    <div class="rp-title">MONEY RECEIPT</div>
+    <div class="rp-meta">Receipt No: RG-${year}-#### &nbsp;|&nbsp; Date: ${today}</div>
+    <div class="rp-field">Received with thanks from ${name||'…………………………………………………….…..'}  </div>
+    <div class="rp-field">Amount ${amtFmt}  </div>
+    <div class="rp-field">In Word ${amtWords}  </div>
+    <div class="rp-field">For ${purpose||'………………………………………………..................................................'}  </div>
+    <div class="rp-field">Month ${month||'……………………………………………………………………………………… '}  </div>
+    <div class="rp-field">Branch ${branch||'……………………………………………………………………………………...'}  </div>
+    <div class="rp-thanks">
+      <div class="rp-thanks-title">Thank you for your payment!</div>
+      <p>We sincerely appreciate your timely payment and continued trust in our services.</p>
+      <p>Your support is highly valued and helps us serve you better.</p>
+      <p>We look forward to continuing our professional relationship.</p>
+      <p>Thank you once again for your cooperation and confidence in us</p>
+    </div>
+    <div class="rp-sig">Authorized Signature</div>
+    <div class="rp-about-title">About Richgyan India</div>
+    <div class="rp-about">Richgyan India has been conducting Training Classes from last 7 years Since 2017. Richgyan India Computer &amp; Vocational Education. Richgyan India is Incorporation by Govt. of India. Richgyan Internationally ISO Certified Organisation, IAF- "International Accreditation Forum" Washington D.C (USA). <em>Registered under Govt. of India Trade Marks Act, 1999 Section 23 (2), Rule 56 (1).</em></div>
+  </div>`;
+}
+function onAmountInput(){
+  const v=parseInt(document.getElementById('f-amount').value)||0;
+  document.getElementById('amount-words').textContent=v?'↳ '+numberToWords(v):'';
+  updatePreview();
+}
+
+/* ── Validation helper ──────────────────────────────────────────────────────── */
+function getFields(){
+  return {
+    name:    document.getElementById('f-name').value.trim(),
+    amount:  document.getElementById('f-amount').value.trim(),
+    purpose: document.getElementById('f-purpose').value.trim(),
+    month:   document.getElementById('f-month').value.trim(),
+    branch:  document.getElementById('f-branch').value.trim(),
+  };
+}
+function clearErrors(){['name','amount','purpose','month','branch'].forEach(f=>{
+  document.getElementById('e-'+f).textContent='';
+  document.getElementById('f-'+f)?.classList.remove('error');
+})}
+function showErrors(fields){Object.entries(fields).forEach(([f,msg])=>{
+  const el=document.getElementById('e-'+f);
+  const inp=document.getElementById('f-'+f);
+  if(el)el.textContent=msg;
+  if(inp)inp.classList.add('error');
+})}
+
+/* ── Download helpers ───────────────────────────────────────────────────────── */
+function b64toBlob(b64,mime){const bytes=atob(b64);const arr=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);return new Blob([arr],{type:mime})}
+function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)}
+
+function setBusy(type,busy){
+  const ids={docx:['btn-docx','lbl-docx','spin-docx'],pdf:['btn-pdf','lbl-pdf','spin-pdf'],both:['btn-both','lbl-both','spin-both']};
+  const [btnId,lblId,spinId]=ids[type];
+  document.getElementById(btnId).disabled=busy;
+  document.getElementById(lblId).style.display=busy?'none':'inline';
+  document.getElementById(spinId).style.display=busy?'block':'none';
+  // also disable others while busy
+  ['docx','pdf','both'].forEach(t=>{if(t!==type)document.getElementById(ids[t][0]).disabled=busy});
+}
+
+async function doDownload(type){
+  clearErrors();
+  const fields=getFields();
+  setBusy(type,true);
+  try{
+    if(type==='both'){
+      const res=await fetch('/api/generate-both',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)});
+      const data=await res.json();
+      if(!res.ok){
+        if(data.fields)showErrors(data.fields);
+        showToast(data.error||'Generation failed','error');
+        return;
+      }
+      // download docx
+      triggerDownload(b64toBlob(data.docx.data,'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),data.docx.filename);
+      // small delay then pdf
+      await new Promise(r=>setTimeout(r,400));
+      triggerDownload(b64toBlob(data.pdf.data,'application/pdf'),data.pdf.filename);
+      showToast(`✓ ${data.receipt_id} — Word + PDF downloaded!`,'success');
+    } else {
+      const endpoint=type==='docx'?'/api/generate':'/api/generate-pdf';
+      const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)});
+      if(res.ok){
+        const blob=await res.blob();
+        const cd=res.headers.get('Content-Disposition')||'';
+        const m=cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        const filename=m?m[1].replace(/['"]/g,''):`receipt.${type}`;
+        triggerDownload(blob,filename);
+        showToast(`✓ ${filename} downloaded!`,'success');
+      } else {
+        const data=await res.json();
+        if(data.fields)showErrors(data.fields);
+        showToast(data.error||'Generation failed','error');
+      }
+    }
+  }catch(e){
+    showToast('Network error: '+e.message,'error');
+  }finally{
+    setBusy(type,false);
+  }
+}
+
+/* ── Groq ───────────────────────────────────────────────────────────────────── */
+async function runGroq(){
+  const key=document.getElementById('groq-key').value.trim();
+  const prompt=document.getElementById('groq-prompt').value.trim();
+  const status=document.getElementById('groq-status');
+  const btn=document.getElementById('btn-groq');
+  if(!key)return setGroqStatus('Please enter your Groq API key','err');
+  if(!prompt)return setGroqStatus('Please describe the receipt','err');
+  btn.disabled=true;btn.textContent='⏳ Thinking…';
+  setGroqStatus('Sending to Groq AI…','');
+  try{
+    const res=await fetch('/api/groq-autofill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:key,prompt})});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Unknown error');
+    const f=data.fields;
+    if(f.name)   document.getElementById('f-name').value=f.name;
+    if(f.amount) document.getElementById('f-amount').value=f.amount;
+    if(f.purpose)document.getElementById('f-purpose').value=f.purpose;
+    if(f.month)  document.getElementById('f-month').value=f.month;
+    if(f.branch) document.getElementById('f-branch').value=f.branch;
+    onAmountInput();updatePreview();
+    setGroqStatus('✓ Fields filled by Groq AI','ok');
+    showToast('AI autofill complete!','success');
+  }catch(e){
+    setGroqStatus('✗ '+e.message,'err');
+    showToast(e.message,'error');
+  }finally{
+    btn.disabled=false;btn.textContent='⚡ Autofill with AI';
+  }
+}
+function setGroqStatus(msg,cls){const el=document.getElementById('groq-status');el.textContent=msg;el.className='groq-status '+(cls||'')}
+
+/* ── Toast ──────────────────────────────────────────────────────────────────── */
+let toastTimer;
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+(type||'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.className=''},3400)}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('groq-prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))runGroq()});
+});
+</script>
+</body>
+</html>
